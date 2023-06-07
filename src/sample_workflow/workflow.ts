@@ -47,13 +47,11 @@ const act = wf.proxyActivities<typeof activities>({
 const { defaultWorkerLogger: logger } = wf.proxySinks<wf.LoggerSinks>();
 
 export async function SampleWorkflow(initialState: SampleWorkflowState): Promise<SampleWorkflowState> {
-  // define the workfllow state
+  // define the workflow state
   let workflowState = { ...initialState };
   const {
     periodGivenForFormFilling, reminderLimit, formFilingReminderDuration
   } = workflowState;
-  // list destruct the activities we are going to use withint the workflow
-  const {sendWelcomeEmail,sendThankyouEmail, sendReminderEmail, creteFollowupTask, updateFollowUpTask: updateFollowUpTask, completeFollowupTask: completeFollowupTask} = act;
   
   // Destruct the signals used in workflow and define the handlers
   /// NB: workflow state can only be mutated within a signal handlers and activities ONLY. 
@@ -63,6 +61,10 @@ export async function SampleWorkflow(initialState: SampleWorkflowState): Promise
   const {getWorkflowState} = queries
   wf.setHandler(formFilled, () => void ( workflowState.newEmployeeFormFilled = true ))
   wf.setHandler(getWorkflowState, ()=>workflowState)
+
+  // list destruct the activities we are going to use within the workflow
+  const {sendWelcomeEmail,sendThankyouEmail, sendReminderEmail, creteFollowupTask, updateFollowUpTask: updateFollowUpTask, completeFollowupTask: completeFollowupTask} = act;
+  
 
    // eslint-disable-next-line no-constant-condition
    while(true) {
