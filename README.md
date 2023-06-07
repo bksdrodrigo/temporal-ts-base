@@ -199,7 +199,8 @@ A End node is denoted by the following pattern in the mermaid graph:
 
 In the above mermaid workflow, end node is depicted as 
 ```mermaid
-G((End:))
+graph TD:
+  G((End:))
 ``` 
 
 
