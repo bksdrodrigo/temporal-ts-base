@@ -142,7 +142,7 @@ Typically we will depict the workflow using a Mermaid graph like shown below. We
 
 ```mermaid
 graph TD
-    A((Start)) --> B["Activity:
+    A((Start:)) --> B["Activity:
     'sendWelcomeEmailWithFormLink' called"]
     B-->C{"RaceCondition:
     Wait until 'newEmployeeFormFilled' is true
@@ -151,7 +151,7 @@ graph TD
     'completeFollowupTaskIfExists' called "]
     E-->F["Activity:
     'sendThankyouEmail' called"]
-    F-->G((End))
+    F-->G((End:))
     C--periodGivenForFormFilling expired-->H["Activity:
     'sendReminderEmail' called"]
     H-->I{"Decision:
@@ -168,4 +168,46 @@ graph TD
     'reminderLimit'>3?"}
     M--No-->H
     M--Yes-->G
+```
+You can see each node in the graph has a `category name` and it's shown before the `:` character of the description. In the above example graph, we have the following categories.
+
+1. Start
+2. End
+3. Activity
+4. RaceCondition
+5. Decision
+
+We will have a standard coding patterns to code each of these categories in our workflows. Given the fact that most of, if not all workflows area a combination of the 5 categories given above, we should be able to standardize coding pattern of any given workflow.
+
+### Coding Patterns for 5 Workflow Node Categories
+
+### Start Node category
+
+A Start node is denoted by the following pattern in the mermaid graph:
+
+`<Letter>((Start:))`
+
+In the above mermaid workflow, start node is depicted as `A((Start:))`. There can be a maximum of 1 start node in a workflow.
+
+Start node doesn't have any typescript code representation since it symbolizes the start of the workflow.
+
+### End Node Category
+
+A End node is denoted by the following pattern in the mermaid graph:
+
+`<Letter>((End:))`
+
+In the above mermaid workflow, end node is depicted as `G((End:))`. There can be a maximum of 1 end node in a workflow.
+
+End node is typically represented by typescript code by return statement of the workflow method. Below code snippet shows how to represent the End node in a typical workflow method.
+
+```ts
+export async function SampleWorkflow(initialState: SampleWorkflowState): Promise<SampleWorkflowState> {
+  // workflow setup code 
+
+  // TODO: Workflow Logic goes here.
+
+  // End node is represented by returning the updated and finalized workflow State as shown below
+  return workflowState
+}
 ```
