@@ -181,7 +181,7 @@ We will have a standard coding patterns to code each of these categories in our 
 
 ### Coding Patterns for 5 Workflow Node Categories
 
-### Start Node category
+#### Start Node category
 
 A Start node is denoted by the following pattern in the mermaid graph:
 
@@ -191,20 +191,13 @@ In the above mermaid workflow, start node is depicted as `A((Start:))`. There ca
 
 Start node doesn't have any typescript code representation since it symbolizes the start of the workflow.
 
-### End Node Category
+#### End Node Category
 
 A End node is denoted by the following pattern in the mermaid graph:
 
 `<Letter>((End:))`
 
-In the above mermaid workflow, end node is depicted as 
-```mermaid
-graph TD:
-  G((End:))
-``` 
-
-
-There can be a maximum of 1 end node in a workflow.
+In the above mermaid workflow, end node is depicted as `G((End:))`. There can be a maximum of 1 end node in a workflow.
 
 End node is typically represented by typescript code by return statement of the workflow method. Below code snippet shows how to represent the End node in a typical workflow method.
 
@@ -216,5 +209,129 @@ export async function SampleWorkflow(initialState: SampleWorkflowState): Promise
 
   // End node is represented by returning the updated and finalized workflow State as shown below
   return workflowState
+}
+```
+
+#### Activity Node Category
+
+A Activity node is denoted by the following pattern in the mermaid graph:
+
+`<Letter>["Activity: 'activityMethodName' called"]`
+
+There can be any number of activity nodes in a given workflow. In the above mermaid workflow example we have few activities defined. For Instance, 
+
+```mermaid
+graph TD
+  A((Start:)) --> B["Activity:
+  'sendWelcomeEmailWithFormLink' called"]
+```
+This shows that we need to call Activity `sendWelcomeEmailWithFormLink` right after starting the workflow.
+
+Activity node is typically represented by typescript code by making a call to the activity. Below code snippet shows how to represent the End node in a typical workflow method.
+
+```ts
+export async function SampleWorkflow(initialState: SampleWorkflowState): Promise<SampleWorkflowState> {
+  // Create a workflowState by copying the initial state 
+  let workflowState = {...initialState}
+  
+  // workflow setup code 
+  const { sendWelcomeEmailWithFormLink } = act
+
+  //Workflow code
+  
+  // Example shown above, B["Activity:'sendWelcomeEmailWithFormLink' called"] is represented by calling the activity method
+  workflowState = await sendWelcomeEmailWithFormLink(workflowState)
+  
+  // TODO: rest of the workflow
+}
+```
+
+#### RaceCondition Node Category
+
+A RaceCondition node is denoted by the following pattern in the mermaid graph:
+
+```
+<Letter>{"RaceCondition:
+    Wait until '<name of the workflow state variable>' is true
+    Or '<duration or time period variable defined in workflow state>' expired"}
+```
+
+There can be any number of RaceCondition nodes in a given workflow. Below is an example of how we will represent a RaceCondition node in Mermaid.
+
+```mermaid
+graph TD
+  A((Start:)) --> C{"RaceCondition:
+    Wait until 'newEmployeeFormFilled' is true
+    Or 'periodGivenForFormFilling' expired"}
+  C--Employee Filled the Form-->E["Activity:
+    'completeFollowupTaskIfExists' called "]
+  C--periodGivenForFormFilling expired-->H["Activity:
+    'sendReminderEmail' called"]
+  E & H --> Z((End:))
+```
+This shows that we need to wait until either `newEmployeeFormFilled` state variable becomes true, or till the duration defined in workflow state variable `periodGivenForFormFilling` is expired. Based on which action happens first, workflow path will be determined. 
+
+As you can see a race condition has two possible outcome execution paths. and we need to handle both. In the example given, if the employee filled the form (i.e. when `newEmployeeFormFilled` state variable becomes true) before the `periodGivenForFormFilling` is expired, then activity `completeFollowupTaskIfExists` will be called. If the employee doesn't fill the form and time duration `periodGivenForFormFilling` is expired, then activity `sendReminderEmail` will be called. 
+
+RaceCondition node is a very important node and we will see how to represent them in typescript using the above simple mermaid graph example.
+
+```ts
+export async function SampleWorkflow(initialState: SampleWorkflowState): Promise<SampleWorkflowState> {
+  // Assume we have newEmployeeFormFilled, periodGivenForFormFilling are all setup in the code already
+
+  // Assume we have completeFollowupTaskIfExists and sendReminderEmail activities are also setup 
+  
+  // below code shows an example of how to represent a RaceCondition in typescript
+  const [formFilled, periodGivenForFormFillingExpired] = await until(workflowState.newEmployeeFormFilled).orTimeout(periodGivenForFormFilling)
+  if(formFilled) {
+    workflowState = await completeFollowupTask(workflowState)
+  } else if(periodGivenForFormFillingExpired) {
+    workflowState = await sendReminderEmail(workflowState)
+  }
+  return workflowState;
+}
+```
+
+#### Decision Node Category
+
+A Decision node is denoted by the following pattern in the mermaid graph:
+
+```
+<Letter>{"Decision:
+    '<name of the workflow state variable>' is true?"}
+
+```
+
+There can be any number of Decision nodes in a given workflow. Below is an example of how we will represent a Decision node in Mermaid.
+
+```mermaid
+graph TD
+  A((Start:)) --> I{"Decision:
+  'followUpTaskCreated' is true?"}
+  I--Yes-->J["Activity:
+  'updateFollowUpTaskPriority' called"]
+  I--No-->K["Activity:
+  'creteFollowupTask' called"]
+  J & K-->Z((End:)) 
+```
+Above graph shows that we are checking if `followUpTaskCreated` workflow state variable is true. If it's true, we call activity `updateFollowUpTaskPriority`, otherwise, we call activity `creteFollowupTask`. 
+
+There is no waiting involved in a Decision node, you simply chose an execution path based on a workflow state variable value.
+
+Decision node is a very important node and we will see how to represent them in typescript using the above simple mermaid graph example.
+
+```ts
+export async function SampleWorkflow(initialState: SampleWorkflowState): Promise<SampleWorkflowState> {
+  // Assume we have followUpTaskCreated workflow state variable already setup
+
+  // Assume we have updateFollowUpTaskPriority and creteFollowupTask activities are also setup 
+  
+  // below code shows an example of how to represent a Condition node in typescript
+  if(workflowState.followUpTaskCreated) {
+    workflowState = await updateFollowUpTaskPriority(workflowState)
+  } else if(periodGivenForFormFillingExpired) {
+    workflowState = await creteFollowupTask(workflowState)
+  }
+  return workflowState;
 }
 ```
