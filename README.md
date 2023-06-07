@@ -142,21 +142,21 @@ Typically we will depict the workflow using a Mermaid graph like shown below. We
 
 ```mermaid
 graph TD
-    A((Start)) --> B["`Send Welcome Email 
-    With Form Link`"]
-    B-->C{"`Employee Filled the form?
-    Or 'periodGivenForFormFilling' duration expired?`"}
-    C--Employee Filled the Form-->E["`Complete Any Existing Followup Tasks`"]
-    E-->F["`Send Thank You Email`"]
+    A((Start)) --> B["Send Welcome Email 
+    With Form Link"]
+    B-->C{"Employee Filled the form?
+    Or 'periodGivenForFormFilling' duration expired?"}
+    C--Employee Filled the Form-->E["Complete Any Existing Followup Tasks"]
+    E-->F["Send Thank You Email"]
     F-->G((End))
-    C--periodGivenForFormFilling duration expired-->H["`Send Reminder Email`"]
-    H-->I{"`Followup Task Created?`"}
-    I--Yes-->J["`Update the Followup Task Priority`"]
-    I--No-->K["`Create Follow up Task`"]
-    J & K-->L{"`Employee Filled the form?
-    Or 'formFilingReminderDuration' expired?`"}
+    C--periodGivenForFormFilling duration expired-->H["Send Reminder Email"]
+    H-->I{"Followup Task Created?"}
+    I--Yes-->J["Update the Followup Task Priority"]
+    I--No-->K["Create Follow up Task"]
+    J & K-->L{"Employee Filled the form?
+    Or 'formFilingReminderDuration' expired?"}
     L--Employee Filled the Form-->E
-    L--formFilingReminderDuration expired-->M{"`Have we Exceeded reminderLimit?`"}
+    L--formFilingReminderDuration expired-->M{"Have we Exceeded reminderLimit?"}
     M--No-->H
     M--Yes-->G
 ```
