@@ -9,8 +9,7 @@ import {
   Runtime,
   Worker,
 } from '@temporalio/worker';
-import * as activities from './activities';
-import { ActivityInboundLogInterceptor } from './core/activity.interceptors';
+import { ActivityInboundLogInterceptor } from './activity.interceptors';
 import { createLogger } from './logging';
 
 const logger = createLogger({
@@ -18,8 +17,10 @@ const logger = createLogger({
   logFilePath: process.env.WORKER_LOG_PATH || '/var/log/worker.log',
 });
 
-async function main() {
-  // Create loggers with different labels for the separate components
+export function getWorker(workflowsPath: string, listeningQueue: string, activities: Object) {
+
+  return async function() {
+    // Create loggers with different labels for the separate components
   const workerWinstonLogger = logger.child({ label: 'worker' });
   const workflowWinstonLogger = logger.child({ label: 'workflow' });
   const activityWinstonLogger = logger.child({ label: 'activity' });
@@ -53,7 +54,6 @@ async function main() {
       },
     },
   });
-  // @@@SNIPEND
 
   // The Worker side of our logger sinks, forwards logs from Workflows to a Winston logger
   const workflowLogger: Logger = {
@@ -77,17 +77,16 @@ async function main() {
     },
   };
 
-  // @@@SNIPSTART typescript-worker-full-logging-setup
   // Create a worker that uses the Runtime instance installed above
   const worker = await Worker.create({
-    workflowsPath: require.resolve('./workflows'),
+    workflowsPath: require.resolve(`../${workflowsPath}`),
     activities,
-    taskQueue: 'instrumentation',
+    taskQueue: listeningQueue,
     // Install interceptors
     interceptors: appendDefaultInterceptors(
       {
         activityInbound: [(ctx) => new ActivityInboundLogInterceptor(ctx, activityWinstonLogger)],
-        workflowModules: [require.resolve('./core/workflow.interceptors')],
+        workflowModules: [require.resolve('./workflow.interceptors')],
       },
       workflowLogger
     ),
@@ -95,12 +94,6 @@ async function main() {
     sinks: defaultSinks(workflowLogger),
   });
   await worker.run();
-}
-
-main().then(
-  () => void process.exit(0),
-  (err) => {
-    logger.error('Process failed', err);
-    process.exit(1);
   }
-);
+
+}

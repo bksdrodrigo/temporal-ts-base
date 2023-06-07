@@ -6,9 +6,9 @@
     "build": "tsc --build",
     "build.watch": "tsc --build --watch",
     "lint": "eslint .",
-    "start": "ts-node src/worker.ts",
-    "start.watch": "nodemon src/worker.ts",
-    "workflow": "ts-node src/client.ts"
+    "start": "ts-node src/sample_workflow/worker.ts",
+    "start.watch": "nodemon src/sample_workflow/worker.ts",
+    "workflow": "ts-node src/sample_workflow/client.ts"
   },
   "nodemonConfig": {
     "execMap": {
@@ -25,6 +25,7 @@
     "@temporalio/worker": "1.7.4",
     "@temporalio/workflow": "1.7.4",
     "triple-beam": "^1.3.0",
+    "nanoid": "3.x",
     "winston": "^3.9.0"
   },
   "devDependencies": {

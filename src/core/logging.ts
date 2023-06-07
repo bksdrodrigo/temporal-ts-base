@@ -1,5 +1,5 @@
-import winston from 'winston';
-import util from 'util';
+import * as winston from 'winston';
+import * as util from 'util';
 import { LEVEL, SPLAT, MESSAGE } from 'triple-beam';
 
 export interface LoggerOptions {
