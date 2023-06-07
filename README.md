@@ -197,7 +197,13 @@ A End node is denoted by the following pattern in the mermaid graph:
 
 `<Letter>((End:))`
 
-In the above mermaid workflow, end node is depicted as `G((End:))`. There can be a maximum of 1 end node in a workflow.
+In the above mermaid workflow, end node is depicted as 
+```mermaid
+G((End:))
+``` 
+
+
+There can be a maximum of 1 end node in a workflow.
 
 End node is typically represented by typescript code by return statement of the workflow method. Below code snippet shows how to represent the End node in a typical workflow method.
 
