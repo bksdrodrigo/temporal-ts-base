@@ -1,4 +1,4 @@
-import { getContext } from './interceptors';
+import { getContext } from '../core/activity.interceptors';
 
 export async function greet(name: string): Promise<string> {
   const { logger } = getContext();
