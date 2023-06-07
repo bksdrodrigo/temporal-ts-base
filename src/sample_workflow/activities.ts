@@ -1,12 +1,6 @@
 import { getContext } from '../core/activity.interceptors';
 import { HRFollowUpTask, SampleWorkflowState } from "./workflow";
 
-export async function greet(name: string): Promise<string> {
-  const { logger } = getContext();
-  logger.info('Log from activity', { name });
-  return `Hello, ${name}!`;
-}
-
 export async function sendWelcomeEmail(workflowState: SampleWorkflowState): Promise<SampleWorkflowState> {
   const {logger} = getContext()
   const { employee: {
