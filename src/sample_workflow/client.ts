@@ -12,7 +12,7 @@ export async function run() {
     },
     welcomeEmailSent: false,
     periodGivenForFormFilling: '50 seconds',
-    reminderLimit: 3,
+    reminderLimit: 4,
     numberOfRemindersSent: 0,
     formFilingReminderDuration: '10 seconds',
     newEmployeeFormFilled: false,
@@ -56,8 +56,8 @@ export async function run() {
     console.log(`Obtaining and handle to the workflow with ID: ${handle.workflowId}`)
     console.log(await handle.query(queries.getWorkflowState))
     const workflowHandle = newClient.getHandle(handle.workflowId)
-    console.log('Sending cancelation signal')
-    await workflowHandle.signal(signals.formFilled) // await for the results for the signal
+    console.log('Sending formFilledSignal signal')
+    await workflowHandle.signal(signals.formFilledSignal) // await for the results for the signal
     console.log(await handle.query(queries.getWorkflowState)) // we can see immediately the impact of cancellation
   }, 75000)
 

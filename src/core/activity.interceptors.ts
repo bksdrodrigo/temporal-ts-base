@@ -17,8 +17,9 @@ export class ActivityInboundLogInterceptor implements ActivityInboundCallsInterc
   public readonly logger: Logger;
 
   constructor(ctx: Context, logger: Logger) {
+    const {taskToken, ...contextToLog} = ctx.info
     this.logger = logger.child({
-      activity: ctx.info,
+      activity: contextToLog,
     });
 
     // Set a logger instance on the current Activity Context to provide

@@ -1,5 +1,5 @@
 import * as wf from '@temporalio/workflow';
-import { until } from '../core/utils';
+import { untilSatisfied } from '../core/utils';
 // Only import the activity types
 import * as activities from './activities';
 
@@ -34,7 +34,7 @@ export type SampleWorkflowState = {
 }
 
 export const signals = {
-  formFilled: wf.defineSignal('formFilledSignal'),
+  formFilledSignal: wf.defineSignal('formFilledSignal'),
 }
 export const queries = {
   getWorkflowState: wf.defineQuery<SampleWorkflowState | undefined>('getWorkflowState')
@@ -50,54 +50,78 @@ export async function SampleWorkflow(initialState: SampleWorkflowState): Promise
   // define the workflow state
   let workflowState = { ...initialState };
   const {
-    periodGivenForFormFilling, reminderLimit, formFilingReminderDuration
+    periodGivenForFormFilling, formFilingReminderDuration, reminderLimit
   } = workflowState;
-  
+  let reminderCount = 1 // This has to start from 1 since we use do loops 
   // Destruct the signals used in workflow and define the handlers
   /// NB: workflow state can only be mutated within a signal handlers and activities ONLY. 
   /// NEVER mutate workflow state within a query
   /// We can pass the workflow state to activities so they can read about the workflow state
-  const { formFilled: formFilled } = signals
+  const { formFilledSignal } = signals
   const {getWorkflowState} = queries
-  wf.setHandler(formFilled, () => void ( workflowState.newEmployeeFormFilled = true ))
+  wf.setHandler(formFilledSignal, () => void ( workflowState.newEmployeeFormFilled = true ))
   wf.setHandler(getWorkflowState, ()=>workflowState)
 
   // list destruct the activities we are going to use within the workflow
   const {sendWelcomeEmail,sendThankyouEmail, sendReminderEmail, creteFollowupTask, updateFollowUpTask: updateFollowUpTask, completeFollowupTask: completeFollowupTask} = act;
-  
 
-   // eslint-disable-next-line no-constant-condition
-   while(true) {
-    workflowState = await sendWelcomeEmail(workflowState);
-    logger.info('Employee Welcome Email Sent: ', {workflowState});
-    const [isFormFilled, periodGivenForFormFillingExpired] = await until(workflowState.newEmployeeFormFilled).orTimeout(periodGivenForFormFilling)
-    if(isFormFilled) {
-      logger.info('Employee Filled New Employee Form: ', {workflowState});
+  // Start: 
+  logger.info('Workflow Started', workflowState);
+  // Activity:'sendWelcomeEmailWithFormLink'
+  workflowState = await sendWelcomeEmail(workflowState)
+  // eslint-disable-next-line no-constant-condition
+  while(true) {
+    // RaceCondition: Wait until 'newEmployeeFormFilled' is true Or 'periodGivenForFormFilling' expired
+    logger.info(`RaceCondition: Wait until 'newEmployeeFormFilled' is true Or 'periodGivenForFormFilling' expired`, {});
+    const [employeeFilledTheForm, periodGivenForFormFillingExpired] = await untilSatisfied(workflowState.newEmployeeFormFilled, periodGivenForFormFilling) 
+    if(employeeFilledTheForm) {
+      logger.info(`Employee Filled the Form`, {});
+      // Activity:'completeFollowupTaskIfExists' called
+      logger.info(`Activity:'completeFollowupTaskIfExists' called`, {});
       workflowState = await completeFollowupTask(workflowState)
-      logger.info('Any Followup Tasks are closed: ', {workflowState});
-      workflowState   = await sendThankyouEmail(workflowState)
-      logger.info('Thankyou Email Sent: ', {workflowState});
+
+      // Activity:'sendThankyouEmail' called
+      logger.info(`Activity:'sendThankyouEmail' called`, {});
+      workflowState = await sendThankyouEmail(workflowState)
       break;
     } else if(periodGivenForFormFillingExpired) {
-      // timeout
-      logger.info('Timeout for user to fill the form expired: ', {});
-      for(let i=1; i<reminderLimit; i++) {
-        logger.info('Proceeding with Reminder cycle: ', {i});
+      logger.info(`Period given for Form filling has expired`, {});
+      sendReminders:
+      do { //Since Activity:'sendReminderEmail' has arrows both going out and coming in, workflow indicates a loop
+        // Activity:'sendReminderEmail' called
+        logger.info(`Activity:'sendReminderEmail' called`, {});
         workflowState = await sendReminderEmail(workflowState)
-        logger.info('Reminder Email Sent', {workflowState});
-        workflowState = workflowState.followUpTaskCreated? await updateFollowUpTask(workflowState) : await creteFollowupTask(workflowState)
-        logger.info('Updating followup Task to increase priority', {workflowState});
-        const [isFormFilled, formFilingReminderDurationExpired] = await until(workflowState.newEmployeeFormFilled).orTimeout(formFilingReminderDuration)
-        if(isFormFilled) {
-          logger.info('Updating followup Task to increase priority', {workflowState});
-          break;
-        } else if (formFilingReminderDurationExpired) {
-          continue;
+
+        logger.info(`Decision:'followUpTaskCreated' created?`, {});
+        if(workflowState.followUpTaskCreated) {
+          logger.info(`followUpTask Already Created`, {});
+          // Activity:'updateFollowUpTaskPriority' called
+          logger.info(`Activity:'updateFollowUpTask' called`, {});
+          workflowState = await updateFollowUpTask(workflowState)
+        } else {
+          logger.info(`Followup Task Not Created`, {});
+          // Activity:'creteFollowupTask' called
+          logger.info(`Activity:'creteFollowupTask' called`, {});
+          workflowState = await creteFollowupTask(workflowState)
         }
-        
-      }
+        // RaceCondition: Wait until 'newEmployeeFormFilled' is true Or 'formFilingReminderDuration' expired
+        logger.info(`RaceCondition: Wait until 'newEmployeeFormFilled' is true Or 'formFilingReminderDuration' expired`, {});
+        const [employeeFilledTheForm, formFilingReminderDurationExpired] = await untilSatisfied(workflowState.newEmployeeFormFilled, formFilingReminderDuration)
+        logger.info(`RaceCondition: Values: Employee Filled the Form = ${employeeFilledTheForm}, Timeout = ${formFilingReminderDurationExpired}`, {});
+        if(employeeFilledTheForm) {
+          // NB: We are breaking out of the reminder loop, so the workflow main loop will handle the employee filled the form scenario
+          logger.info(`Breaking the SendReminder Loop, reminderCount: ${reminderCount}`,{})
+          break sendReminders //We break out of the reminder loop
+        } else if(formFilingReminderDurationExpired) {
+          // We need to facilitate Decision:'reminderLimit'>3 by increasing the reminderLimit of time expires
+          logger.info(`Period in between reminders have expired. Increase the Reminder counter by one`, {});
+          reminderCount++
+        }
+        logger.info(`Check reminderCount: ${reminderCount} < ${reminderLimit}`, {});
+      } while(reminderCount < reminderLimit) // Decision:'reminderLimit'>3?
     }
-   }
-   return workflowState;
+  }
+  // End:
+  return workflowState
 }
 
