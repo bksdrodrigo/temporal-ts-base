@@ -61,16 +61,18 @@ graph TD
 4. `RaceCondition` Node Category
 
 ```mermaid
-C{"RaceCondition:
-    Wait until 'newEmployeeFormFilled' is true
-    Or 'periodGivenForFormFilling' expired"}
+graph TD
+  C{"RaceCondition:
+      Wait until 'newEmployeeFormFilled' is true
+      Or 'periodGivenForFormFilling' expired"}
 ```
 
 5. `Decision` Node Category
 
 ```mermaid
-I{"Decision:
-  'followUpTaskCreated' is true?"}
+graph TD
+  I{"Decision:
+    'followUpTaskCreated' is true?"}
 ```
 
 Given the fact that most of, if not all workflows area a combination of the 5 categories given above, we should be able Create any workflow using those categories.
@@ -149,6 +151,7 @@ graph TD
   C--periodGivenForFormFilling expired-->H["Activity:
     'sendReminderEmail' called"]
   E & H --> Z((End:))
+
 ```
 `newEmployeeFormFilled` and `periodGivenForFormFilling` are workflow state variables. And `completeFollowupTaskIfExists`, `sendReminderEmail` are Activities. 
 
